@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="d-flex justify-content-center">
+    <form method="GET" action="{% url 'predict' %}" class="row g-2">
+        <div class="col-auto">
+            {{ step_form }}
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Predict</button>
+        </div>
+    </form>
+</div>
+
+<div class="container">
+    <canvas id="myChart" height="60"></canvas>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script>
+    const ctx = document.getElementById('myChart');
+
+    const data = {
+        datasets: [{
+            label: 'Original',
+            data: [{% for row in data%}{Date:'{{row.Date}}',Close:'{{ row.Close }}'},{% endfor %}],
+            pointRadius: 0,
+            },
+            {
+            label: 'Predicted',
+            data: [{% for row in pred_data%}{Date:'{{row.Date}}',Close:'{{ row.Close }}'},{% endfor %}],
+            pointRadius: 0,
+            }]
+    };
+
+    new Chart(ctx, {
+        type: 'line',
+        data: data,
+        options: {
+            parsing: {
+                xAxisKey: 'Date',
+                yAxisKey: 'Close',
+            },
+            scales: {
+                x: {type:'time', time:{unit:'year'}}, y:{beginAtZero: true}}, layout: {padding: 20}
+        }
+    });
+</script>
+
+{% endblock content %}

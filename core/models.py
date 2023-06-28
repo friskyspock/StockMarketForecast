@@ -9,3 +9,9 @@ class StockData(models.Model):
 
     class Meta:
         ordering = ('id',)
+
+class StockInfo(models.Model):
+    Name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.Name

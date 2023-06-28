@@ -1,21 +1,44 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="container-fluid vh-100">
 
-<div class="d-flex justify-content-center">
-    <form method="GET" action="{% url 'predict' %}" class="row g-2">
-        <div class="col-auto">
-            {{ step_form }}
+    <div class="row">
+        <div class="d-flex justify-content-center m-3">
+            <form method="GET" action="{% url 'predict' %}" class="row g-2">
+                <div class="col-auto">
+                    {{ step_form }}
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">Predict</button>
+                </div>
+            </form>
         </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary">Predict</button>
+    </div>
+    
+    <div class="row">
+        <div class="p-3 border rounded">
+            <canvas id="myChart" height="60"></canvas>
         </div>
-    </form>
+    </div>
+
+    <div class="row justify-content-start">
+        <div class="col-3 px-0">
+            <div class="my-3 border rounded overflow-y-scroll" style="height: 350px">
+                <table class="table">
+                    <th>Date</th><th>Close</th>
+                    {% for row in pred_data%}
+                        <tr>
+                            <td>{{row.Date}}</td><td>{{row.Close}}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
 
-<div class="container">
-    <canvas id="myChart" height="60"></canvas>
-</div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -27,11 +50,13 @@
             label: 'Original',
             data: [{% for row in data%}{Date:'{{row.Date}}',Close:'{{ row.Close }}'},{% endfor %}],
             pointRadius: 0,
+            borderColor: '#d048b6',
             },
             {
             label: 'Predicted',
             data: [{% for row in pred_data%}{Date:'{{row.Date}}',Close:'{{ row.Close }}'},{% endfor %}],
             pointRadius: 0,
+            borderColor: '#f5ed16',
             }]
     };
 
@@ -44,7 +69,19 @@
                 yAxisKey: 'Close',
             },
             scales: {
-                x: {type:'time', time:{unit:'year'}}, y:{beginAtZero: true}}, layout: {padding: 20}
+                x: {
+                    type:'time',
+                    time: {unit:'month'},
+                    grid: {color:'rgba(161,161,161,0.1)'},
+                    ticks: {color: 'rgb(255,255,255)'},
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {color:'rgba(161,161,161,0.1)'},
+                    ticks: {color: 'rgb(255,255,255)'},
+                }
+            }, 
+            layout: {padding: 20}
         }
     });
 </script>

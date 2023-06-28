@@ -1,5 +1,4 @@
 from django import forms
-from django.db.models.fields import BLANK_CHOICE_DASH
 
 class TickerName(forms.Form):
     COMPANY_CHOICES = [

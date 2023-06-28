@@ -1,22 +1,15 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="d-flex justify-content-center">
-    <form method="GET" action="{% url 'chart' %}" class="row g-3">
-        <div class="col-auto">
-            {{ ticker_form }}
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary">Submit</button>
-        </div>
-    </form>
+<div class="d-flex justify-content-sm-start">
+    <h1 class="display-6">{{ name }}</h1>
 </div>
 
-<div class="container">
+<div class="p-3 bg-info bg-opacity-10 border border-info rounded">
     <canvas id="myChart" height="60"></canvas>
 </div>
 
-<div class="container text-center">
+<div class="mt-3 container text-center">
     <button type="button" class="btn btn-outline-primary">
         <a class="mylink" href="{% url 'predict' %}">Go To Predictions</a>
     </button>
@@ -27,7 +20,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
 <script>
-    const ctx = document.getElementById('myChart');
+    var ctx = document.getElementById('myChart');
 
     new Chart(ctx, {
         type: 'line',
@@ -35,15 +28,34 @@
         datasets: [{
             label: 'Close value',
             data: [{% for row in data%}{x:'{{row.x}}',y:'{{ row.y }}'},{% endfor %}],
-            fill: false,
+            fill: true,
             borderColor: 'rgb(75, 192, 192)',
             tension: 0.1,
             pointRadius: 0
         }]
         },
         options: {
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'rgb(255,255,255)',
+                    },
+                },
+            },
             scales: {
-                x: {type:'time', time:{unit:'year'}}, y:{beginAtZero: true}}, layout: {padding: 20}
+                x: {
+                    type:'time',
+                    time: {unit:'year'},
+                    grid: {color:'rgba(161,161,161,0.1)'},
+                    ticks: {color: 'rgb(255,255,255)'},
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {color:'rgba(161,161,161,0.1)'},
+                    ticks: {color: 'rgb(255,255,255)'},
+                }
+            }, 
+            layout: {padding: 20}
         }
     });
 </script>

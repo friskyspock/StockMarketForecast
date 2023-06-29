@@ -1,11 +1,10 @@
 from django import forms
+from core.models import TickerList
+
+tlist = TickerList.objects.values_list('Symbol','Name')
+COMPANY_CHOICES = [("","-- Select Company --")] + list(tlist)
 
 class TickerName(forms.Form):
-    COMPANY_CHOICES = [
-    ("","-- Select Company --"),
-    ("RELIANCE.NS","Reliance Industries Limited"),
-    ("TATAMOTORS.NS","Tata Motors Limited")
-    ]
     ticker = forms.ChoiceField(
         widget=forms.Select(attrs={'class':'form-select'}),
         choices=COMPANY_CHOICES,

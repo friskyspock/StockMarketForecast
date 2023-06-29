@@ -1,7 +1,8 @@
 from django.shortcuts import render
+from django.utils import timezone
 import pickle
 
-from core.models import StockData, StockInfo
+from core.models import StockData, StockInfo, TickerList
 from core.forms import TickerName, Steps
 from core.code import RefreshData
 
@@ -11,7 +12,10 @@ def retrain(request):
     ticker = request.GET.get('ticker')
     if ticker:
         t = StockInfo.objects.get(id=1)
-        t.Name = ticker
+        t.Symbol = ticker
+        tl = TickerList.objects.filter(Symbol__exact=ticker).get()
+        t.Name = tl.Name
+        t.Updated = timezone.now()
         t.save()
         refresh = RefreshData(ticker)
         refresh.download_data()
@@ -21,16 +25,19 @@ def retrain(request):
     return render(request,'retrain.html',context)
 
 def chart(request):
-    name = StockInfo.objects.get(id=1)
+    t = StockInfo.objects.get(id=1)
+    name = t.Name
     data = StockData.objects.values('Date','Close')
     new_data = [{'x':row['Date'].strftime("%Y-%m-%d"),'y':row['Close']} for row in data]
     context = {'name':name,'data':new_data,'nbar':'chart'}
     return render(request, 'chart.html', context)
 
 def predict(request):
+    t = StockInfo.objects.get(id=1)
+    updated = t.Updated
     data = StockData.objects.values('Date','Close')
     new_data = [{'Date':row['Date'].strftime("%Y-%m-%d"),'Close':row['Close']} for row in data]
-    context = {'data':new_data,'step_form':Steps,'nbar':'predict'}
+    context = {'updated':updated,'data':new_data,'step_form':Steps,'nbar':'predict'}
 
     num_steps = request.GET.get('num_steps')
     if num_steps:

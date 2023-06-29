@@ -33,9 +33,11 @@
                     <a class="nav-link {% if nbar == 'retrain' %}active{% endif %}" href="{% url 'retrain' %}">Retrain</a>
                   </li>
                 </ul>
+                {% if nbar == 'predict' %}
                 <span class="navbar-text">
-                  Last updated at: 28-06-2023
+                   Last updated at: {{ updated }}
                 </span>
+                {% endif %}
               </div>
             </div>
           </nav>

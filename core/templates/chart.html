@@ -15,9 +15,13 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="row justify-content-start">
         <div class="p-3 my-3 bg-info bg-opacity-10 border border-info rounded">
-            <canvas id="myChart" height="60"></canvas>
+            <div class="overflow-x-scroll" style="max-width: 100%;">
+                <div class="containerBody" style="width: 12000px;">
+                    <canvas id="myChart" height="600"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -32,17 +36,15 @@
     const datapoints = await response.json();
     return datapoints;
     };
-
-    fetchData().then(datapoints => {
-        const dataset = datapoints.map(function(index){return {x:index.Date,o:index.Open,h:index.High,l:index.Low,c:index.Close,s:[index.Open,index.Close]}})
-        const dataset2 = datapoints.map(function(index){return {x:index.Date,y:index.Close}})
-        myChart2.config.data.datasets[0].data = dataset2;
-        myChart2.update();
-    });
 </script>
 
 <!--LinePlot-->
 <script>
+    fetchData().then(datapoints => {
+        const dataset2 = datapoints.map(function(index){return {x:index.Date,y:index.Close}})
+        myChart2.config.data.datasets[0].data = dataset2;
+        myChart2.update();
+    });
     // data
     const data2 = {
         datasets: [{
@@ -92,11 +94,22 @@
 
 <!--CandleStick-->
 <script>
+    fetchData().then(datapoints => {
+        const dataset = datapoints.map(function(index){return {x:index.Date,o:index.Open,h:index.High,l:index.Low,c:index.Close,s:[index.Open,index.Close]}})
+        myChart.data.datasets[0].data = dataset;
+        myChart.update();
+    });
     // setup
     const data = {
       datasets: [{
         label: "Last 30 days",
-        data: [{% for row in last_month_data%}{x:'{{ row.Date }}',o:'{{ row.Open }}',h:'{{ row.High }}',l:'{{ row.Low }}',c:'{{ row.Close }}',s: ['{{ row.Open }}','{{ row.Close }}'] },{% endfor %}],
+        data: [{x: new Date('2022-06-04').setHours(0,0,0,0),
+                o: 1.50,
+                h: 1.80,
+                l: 1.20,
+                c: 1.40,
+                s: [1.50, 1.40]}],
+        //data: [{% for row in last_month_data%}{x:'{{ row.Date }}',o:'{{ row.Open }}',h:'{{ row.High }}',l:'{{ row.Low }}',c:'{{ row.Close }}',s: ['{{ row.Open }}','{{ row.Close }}'] },{% endfor %}],
         backgroundColor: (ctx) => {
             const { raw: {o, c} } = ctx;
             let color;
@@ -121,7 +134,7 @@
 
             ctx.save();
             ctx.lineWidth = 2;
-            ctx.strokeStyle = 'rgba(0,0,0,1)';
+            ctx.strokeStyle = 'rgba(255,255,255,1)';
             
             data.datasets[0].data.forEach((datapoint, index) => {
                 ctx.beginPath();
@@ -149,6 +162,7 @@
             xAxisKey: 'x',
             yAxisKey: 's',
         },
+        maintainAspectRatio: false,
         scales: {
         x: {
             type: 'time',

@@ -27,10 +27,6 @@ class RefreshData:
     data.drop('Adj Close',axis=1,inplace=True)
     data.index = 1+np.arange(data.shape[0])
     data.index.names = ['id']
-    #StockData.objects.all().delete()
-    #for index, row in data.iterrows():
-    #  t = StockData(Date=row['Date'], Close=row['Close'], LogReturns=row['LogReturns'], Target=row['Target'])
-    #  t.save()
     engine = create_engine('sqlite:///db.sqlite3')
     data.to_sql(StockData._meta.db_table, if_exists='replace', con=engine)
     

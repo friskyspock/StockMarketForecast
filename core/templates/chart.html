@@ -30,32 +30,25 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
-<script>
-    async function fetchData() {
-    const response = await fetch("{% url 'send_data' %}");
-    const datapoints = await response.json();
-    return datapoints;
-    };
-</script>
 
 <!--CandleStick-->
 <script>
-    fetchData().then(datapoints => {
-        const dataset = datapoints.map(function(index){return {x:index.Date,o:index.Open,h:index.High,l:index.Low,c:index.Close,s:[index.Open,index.Close]}})
-        myChart.data.datasets[0].data = dataset;
-        myChart.update();
-    });
+    (async function() {
+    const response = await fetch("{% url 'send_data' %}");
+    const datapoints = await response.json();
+
     // setup
     const data = {
       datasets: [{
         label: "Last 30 days",
-        data: [{x: new Date('2022-06-04').setHours(0,0,0,0),
-                o: 1.50,
-                h: 1.80,
-                l: 1.20,
-                c: 1.40,
-                s: [1.50, 1.40]}],
-        //data: [{% for row in last_month_data%}{x:'{{ row.Date }}',o:'{{ row.Open }}',h:'{{ row.High }}',l:'{{ row.Low }}',c:'{{ row.Close }}',s: ['{{ row.Open }}','{{ row.Close }}'] },{% endfor %}],
+        data: datapoints.map(row => ({
+                        x:row.Date,
+                        o:row.Open,
+                        h:row.High,
+                        l:row.Low,
+                        c:row.Close,
+                        s:[row.Open,row.Close]
+                    })),
         backgroundColor: (ctx) => {
             const { raw: {o, c} } = ctx;
             let color;
@@ -129,22 +122,19 @@
       document.getElementById('myChart'),
       config
     );
-
-    // Instantly assign Chart.js version
-    //const chartVersion = document.getElementById('chartVersion');
-    //chartVersion.innerText = Chart.version;
+})();
 </script>
 
 <!--LinePlot-->
 <script>
-    fetchData().then(datapoints => {
-        const dataset2 = datapoints.map(function(index){return {x:index.Date,y:index.Close}})
-        myChart2.config.data.datasets[0].data = dataset2;
-        myChart2.update();
-    });
+    (async function() {
+    const response = await fetch("{% url 'send_data' %}");
+    const datapoints = await response.json();
+
     // data
     const data2 = {
         datasets: [{
+            data: datapoints.map(row => ({x:row.Date,y:row.Close})),
             label: 'Close value',
             fill: true,
             borderColor: 'rgb(75, 192, 192)',
@@ -187,6 +177,7 @@
       document.getElementById('myChart2'),
       config2
     );
+})();
 </script>
 
 {% endblock content %}

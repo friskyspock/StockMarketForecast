@@ -1,9 +1,8 @@
 from django.shortcuts import render
-from django.core import serializers
 from django.http import JsonResponse
-from django.template.loader import render_to_string
 from django.utils import timezone
 import pickle
+from datetime import datetime
 
 from core.models import StockData, StockInfo, TickerList
 from core.forms import TickerName, Steps
@@ -12,6 +11,12 @@ from core.code import RefreshData
 # Create your views here.
 def send_data(request):
     data = StockData.objects.all()
+    return JsonResponse(list(data.values()),safe=False)
+
+def send_filtered_data(request,start):
+    start = datetime.strptime(start,format="%Y-%m-%d")
+    data = StockData.objects.all()
+    data = data.filter(Date__gte=start)
     return JsonResponse(list(data.values()),safe=False)
 
 def chart(request):

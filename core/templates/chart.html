@@ -1,18 +1,26 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="d-flex justify-content-sm-start">
-    <h1 class="display-6">{{ name }}</h1>
-</div>
+<div class="container-fluid vh-100">
 
-<div class="p-3 bg-info bg-opacity-10 border border-info rounded">
-    <canvas id="myChart" height="60"></canvas>
-</div>
+    <div class="row">
+        <div class="d-flex justify-content-sm-start">
+            <h1 class="display-6">{{ name }}</h1>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="p-3 my-3 bg-info bg-opacity-10 border border-info rounded">
+            <canvas id="myChart2" height="60"></canvas>
+        </div>
+    </div>
 
-<div class="mt-3 container text-center">
-    <button type="button" class="btn btn-outline-primary">
-        <a class="mylink" href="{% url 'predict' %}">Go To Predictions</a>
-    </button>
+    <div class="row">
+        <div class="p-3 my-3 bg-info bg-opacity-10 border border-info rounded">
+            <canvas id="myChart" height="60"></canvas>
+        </div>
+    </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -20,20 +28,37 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
 <script>
-    var ctx = document.getElementById('myChart');
+    async function fetchData() {
+    const response = await fetch("{% url 'send_data' %}");
+    const datapoints = await response.json();
+    return datapoints;
+    };
 
-    new Chart(ctx, {
-        type: 'line',
-        data: {
+    fetchData().then(datapoints => {
+        const dataset = datapoints.map(function(index){return {x:index.Date,o:index.Open,h:index.High,l:index.Low,c:index.Close,s:[index.Open,index.Close]}})
+        const dataset2 = datapoints.map(function(index){return {x:index.Date,y:index.Close}})
+        myChart2.config.data.datasets[0].data = dataset2;
+        myChart2.update();
+    });
+</script>
+
+<!--LinePlot-->
+<script>
+    // data
+    const data2 = {
         datasets: [{
             label: 'Close value',
-            data: [{% for row in data%}{x:'{{row.x}}',y:'{{ row.y }}'},{% endfor %}],
             fill: true,
             borderColor: 'rgb(75, 192, 192)',
             tension: 0.1,
             pointRadius: 0
         }]
-        },
+        };
+
+    // config
+    const config2 = {
+        type: 'line',
+        data: data2,
         options: {
             plugins: {
                 legend: {
@@ -57,7 +82,98 @@
             }, 
             layout: {padding: 20}
         }
-    });
+    };
+
+     // render init block
+    const myChart2 = new Chart(
+      document.getElementById('myChart2'),
+      config2
+    );
 </script>
-  
+
+<!--CandleStick-->
+<script>
+    // setup
+    const data = {
+      datasets: [{
+        label: "Last 30 days",
+        data: [{% for row in last_month_data%}{x:'{{ row.Date }}',o:'{{ row.Open }}',h:'{{ row.High }}',l:'{{ row.Low }}',c:'{{ row.Close }}',s: ['{{ row.Open }}','{{ row.Close }}'] },{% endfor %}],
+        backgroundColor: (ctx) => {
+            const { raw: {o, c} } = ctx;
+            let color;
+            if(c >= o) {
+                color = 'rgba(75, 192, 192, 1)';
+            } else {
+                color = 'rgba(255, 26, 104, 1)';
+            }
+            return color;
+        },
+        borderColor: 'rgba(0, 0, 0, 1)',
+        borderWidth: 1,
+        borderSkipped: false,
+      }]
+    };
+
+    // candlestick plugin block
+    const candlestick = {
+        id: 'candlestick',
+        beforeDatasetsDraw(chart, args, pluginOptions) {
+            const { ctx, data, chartArea: { top, bottom, left, right, width, height }, scales: {x,y}} = chart;
+
+            ctx.save();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(0,0,0,1)';
+            
+            data.datasets[0].data.forEach((datapoint, index) => {
+                ctx.beginPath();
+                ctx.moveTo(chart.getDatasetMeta(0).data[index].x, chart.getDatasetMeta(0).data[index].y);
+                ctx.lineTo(chart.getDatasetMeta(0).data[index].x, y.getPixelForValue(data.datasets[0].data[index].h));
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(chart.getDatasetMeta(0).data[index].x, chart.getDatasetMeta(0).data[index].y);
+                ctx.lineTo(chart.getDatasetMeta(0).data[index].x, y.getPixelForValue(data.datasets[0].data[index].l));
+                ctx.stroke();
+            })
+        }
+    }
+
+    // config 
+    const config = {
+      type: 'bar',
+      data,
+      options: {
+        legend: {
+            display: false,
+        },
+        parsing: {
+            xAxisKey: 'x',
+            yAxisKey: 's',
+        },
+        scales: {
+        x: {
+            type: 'time',
+            time: {
+                unit: 'day',
+            }
+            },
+        y: {
+            beginAtZero: false,
+          }
+        }
+      },
+      plugins: [candlestick]
+    };
+
+    // render init block
+    const myChart = new Chart(
+      document.getElementById('myChart'),
+      config
+    );
+
+    // Instantly assign Chart.js version
+    const chartVersion = document.getElementById('chartVersion');
+    chartVersion.innerText = Chart.version;
+</script>
+
 {% endblock content %}

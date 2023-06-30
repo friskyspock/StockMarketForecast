@@ -33,6 +33,11 @@
                     <a class="nav-link {% if nbar == 'retrain' %}active{% endif %}" href="{% url 'retrain' %}">Retrain</a>
                   </li>
                 </ul>
+                {% if nbar == 'chart' %}
+                <button type="button" class="btn btn-outline-primary">
+                  <a class="mylink" href="{% url 'predict' %}">Go To Predictions</a>
+                </button>
+                {% endif %}
                 {% if nbar == 'predict' %}
                 <span class="navbar-text">
                    Last updated at: {{ updated }}

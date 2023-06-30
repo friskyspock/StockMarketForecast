@@ -2,10 +2,12 @@ from django.db import models
 
 # Create your models here.
 class StockData(models.Model):
-    Date = models.DateField()
+    Open = models.FloatField()
+    High = models.FloatField()
+    Low = models.FloatField()
     Close = models.FloatField()
-    LogReturns = models.FloatField()
-    Target = models.FloatField()
+    Volume = models.FloatField()
+    Date = models.DateField()
 
     class Meta:
         ordering = ('id',)

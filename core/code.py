@@ -22,13 +22,15 @@ class RefreshData:
     self.scaler_x = MinMaxScaler()
 
   def download_data(self):
-    data = yf.download(tickers=self.ticker,start='2020-09-01',end='2023-06-05',progress=False)[['Close']].copy()
+    data = yf.download(tickers="RELIANCE.NS",start='2020-09-01',end='2023-06-05',progress=False).copy()
     data['Date'] = data.index
-    data = data[['Date','Close']]
+    data.drop('Adj Close',axis=1,inplace=True)
     data.index = 1+np.arange(data.shape[0])
     data.index.names = ['id']
-    data['LogReturns'] = np.log(1 + data['Close'].pct_change())
-    data['Target'] = data['Close'].shift(-1)
+    #StockData.objects.all().delete()
+    #for index, row in data.iterrows():
+    #  t = StockData(Date=row['Date'], Close=row['Close'], LogReturns=row['LogReturns'], Target=row['Target'])
+    #  t.save()
     engine = create_engine('sqlite:///db.sqlite3')
     data.to_sql(StockData._meta.db_table, if_exists='replace', con=engine)
     

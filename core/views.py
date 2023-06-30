@@ -1,4 +1,7 @@
 from django.shortcuts import render
+from django.core import serializers
+from django.http import JsonResponse
+from django.template.loader import render_to_string
 from django.utils import timezone
 import pickle
 
@@ -7,29 +10,17 @@ from core.forms import TickerName, Steps
 from core.code import RefreshData
 
 # Create your views here.
-def retrain(request):
-    context = {'ticker_form':TickerName,'nbar':'retrain'}
-    ticker = request.GET.get('ticker')
-    if ticker:
-        t = StockInfo.objects.get(id=1)
-        t.Symbol = ticker
-        tl = TickerList.objects.filter(Symbol__exact=ticker).get()
-        t.Name = tl.Name
-        t.Updated = timezone.now()
-        t.save()
-        refresh = RefreshData(ticker)
-        refresh.download_data()
-        refresh.build_model()
-        with open('modelclass','wb') as picklefile:
-            pickle.dump(refresh,picklefile)
-    return render(request,'retrain.html',context)
+def send_data(request):
+    data = StockData.objects.all()
+    return JsonResponse(list(data.values()),safe=False)
 
 def chart(request):
     t = StockInfo.objects.get(id=1)
     name = t.Name
-    data = StockData.objects.values('Date','Close')
-    new_data = [{'x':row['Date'].strftime("%Y-%m-%d"),'y':row['Close']} for row in data]
-    context = {'name':name,'data':new_data,'nbar':'chart'}
+    data = StockData.objects.values()
+    new_data = [{'Date':row['Date'].strftime("%Y-%m-%d"),'Close':row['Close'],'Open':row['Open'],'High':row['High'],'Low':row['Low']} for row in data]
+    last_month_data = new_data[-30:]
+    context = {'name':name,'data':new_data,'last_month_data':last_month_data,'nbar':'chart'}
     return render(request, 'chart.html', context)
 
 def predict(request):
@@ -48,3 +39,22 @@ def predict(request):
         context['pred_data'] = pred_data
 
     return render(request,'predict.html',context)
+
+def retrain(request):
+    context = {'ticker_form':TickerName,'nbar':'retrain'}
+    ticker = request.GET.get('ticker')
+    if ticker:
+        t = StockInfo.objects.get(id=1)
+        t.Symbol = ticker
+        tl = TickerList.objects.filter(Symbol__exact=ticker).get()
+        t.Name = tl.Name
+        t.Updated = timezone.now()
+        t.save()
+        refresh = RefreshData(ticker)
+        refresh.download_data()
+        refresh.build_model()
+        RMSE = refresh.RMSEontest
+        context['rmse'] = RMSE
+        with open('modelclass','wb') as picklefile:
+            pickle.dump(refresh,picklefile)
+    return render(request,'retrain.html',context)

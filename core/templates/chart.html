@@ -4,24 +4,28 @@
 <div class="container-fluid vh-100">
 
     <div class="row">
-        <div class="d-flex justify-content-sm-start">
+        <div class="d-flex justify-content-between">
             <h1 class="display-6">{{ name }}</h1>
+            <form method="GET" action="{% url 'chart' %}" class="row g-3">
+                <div class="col-auto">
+                    {{ ticker_form }}
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
         </div>
     </div>
     
     <div class="row justify-content-start">
         <div class="p-3 my-3 bg-info bg-opacity-10 border border-info rounded">
-            <div class="overflow-x-scroll" style="max-width: 100%;">
-                <div class="containerBody" style="width: 12000px;">
-                    <canvas id="myChart" height="600"></canvas>
-                </div>
-            </div>
+            <canvas id="myChart" height="75"></canvas>
         </div>
     </div>
 
     <div class="row">
-        <div class="p-3 my-3 bg-info bg-opacity-10 border border-info rounded">
-            <canvas id="myChart2" height="60"></canvas>
+        <div class="p-3 bg-info bg-opacity-10 border border-info rounded">
+            <canvas id="myChart2" height="50"></canvas>
         </div>
     </div>
 
@@ -34,6 +38,7 @@
 
 <!--CandleStick-->
 <script>
+    Chart.defaults.plugins.legend.display = false;
     (async function() {
     const response = await fetch("{% url 'send_data' %}");
     const datapoints = await response.json();
@@ -95,20 +100,18 @@
       type: 'bar',
       data,
       options: {
-        legend: {
-            display: false,
-        },
         parsing: {
             xAxisKey: 'x',
             yAxisKey: 's',
         },
-        maintainAspectRatio: false,
         scales: {
         x: {
             type: 'time',
             time: {
                 unit: 'week',
-            }
+            },
+            min: new Date("2023-01-01"),
+            max: new Date("2023-07-01")
             },
         y: {
             beginAtZero: false,
@@ -140,7 +143,6 @@
             label: 'Close',
             fill: true,
             borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1,
             pointRadius: 0
             },
         ]
@@ -151,11 +153,18 @@
         type: 'line',
         data: data2,
         options: {
+            // animations: {
+            //     tension: {
+            //         duration: 1000,
+            //         easing: 'linear',
+            //         from: 1,
+            //         to: 0,
+            //         loop: true
+            //     }
+            // },
             plugins: {
                 legend: {
-                    labels: {
-                        color: 'rgb(255,255,255)',
-                    },
+                    display: false
                 },
             },
             scales: {

@@ -40,33 +40,75 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
 <script>
-    const ctx = document.getElementById('myChart');
+    (async function() {
+    const response = await fetch("{% url 'send_data' %}");
+    const datapoints = await response.json();
+    const predictionpoints = [{% for row in pred_data%}{Date:'{{row.Date}}',Close:'{{ row.Close }}'},{% endfor %}];
 
-    const data = {
-        datasets: [{
-            label: 'Original',
-            data: [{% for row in data%}{Date:'{{row.Date}}',Close:'{{ row.Close }}'},{% endfor %}],
-            pointRadius: 0,
-            borderColor: '#d048b6',
-            },
-            {
-            label: 'Predicted',
-            data: [{% for row in pred_data%}{Date:'{{row.Date}}',Close:'{{ row.Close }}'},{% endfor %}],
-            pointRadius: 0,
-            borderColor: '#f5ed16',
-            }]
-    };
+    const data = [];
+    let prev = datapoints[0].Close;
+    for (let i = 0; i < (datapoints.length+predictionpoints.length); i++) {
+        if (i < datapoints.length) {
+            data.push({x: datapoints[i].Date, y: datapoints[i].Close, c:'R'});
+        } else {
+            data.push({x: predictionpoints[i-datapoints.length].Date, y: predictionpoints[i-datapoints.length].Close, c:'Y'});
+        }
+    }
 
-    new Chart(ctx, {
+    const totalDuration = 10000;
+    const delayBetweenPoints = totalDuration / data.length;
+    const previousY = (ctx) => ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(datapoints[0].Close) : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y;
+
+    // config
+    const config = {
         type: 'line',
-        data: data,
+        data: {
+            datasets: [{
+            label: 'Original',
+            data: data,
+            pointRadius: 0,
+            segment: {
+                borderColor: ((ctx) => {
+                    phaseColors = {
+                        R: '#e211ed',
+                        Y: '#f5ed16',
+                    };
+                    return phaseColors[ctx.p0.raw.c];
+                })
+            },
+            }]
+        },
         options: {
-            parsing: {
-                xAxisKey: 'Date',
-                yAxisKey: 'Close',
+            animation: {
+                x: {
+                    type: 'number',
+                    easing: 'linear',
+                    duration: delayBetweenPoints,
+                    from: NaN, // the point is initially skipped
+                    delay(ctx) {
+                    if (ctx.type !== 'data' || ctx.xStarted) {
+                        return 0;
+                    }
+                    ctx.xStarted = true;
+                    return ctx.index * delayBetweenPoints;
+                    }
+                },
+                y: {
+                    type: 'number',
+                    easing: 'linear',
+                    duration: delayBetweenPoints,
+                    from: previousY,
+                    delay(ctx) {
+                    if (ctx.type !== 'data' || ctx.yStarted) {
+                        return 0;
+                    }
+                    ctx.yStarted = true;
+                    return ctx.index * delayBetweenPoints;
+                    }
+                }
             },
             scales: {
                 x: {
@@ -76,14 +118,21 @@
                     ticks: {color: 'rgb(255,255,255)'},
                 },
                 y: {
-                    beginAtZero: true,
+                    beginAtZero: false,
                     grid: {color:'rgba(161,161,161,0.1)'},
                     ticks: {color: 'rgb(255,255,255)'},
                 }
             }, 
-            layout: {padding: 20}
+            layout: {padding: 2}
         }
-    });
+    };
+
+    // render init block
+    const myChart = new Chart(
+    document.getElementById('myChart'),
+    config
+    );
+})();
 </script>
 
 {% endblock content %}

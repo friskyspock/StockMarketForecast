@@ -1,85 +1,57 @@
 import pandas as pd
-import yfinance as yf
 import numpy as np
-from sqlalchemy import create_engine
 
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_squared_error
 
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
 import logging, os
 logging.disable(logging.WARNING)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-from core.models import StockData
-
-class RefreshData:
-  def __init__(self,ticker):
+class EnsembleModel:
+  def __init__(self, ticker, array, dates, time_steps=80):
     self.ticker = ticker
-    self.time_steps = 3
-    self.scaler_y = MinMaxScaler()
-    self.scaler_x = MinMaxScaler()
+    self.scaler = MinMaxScaler()
+    self.time_steps = time_steps
+    self.model = None
+    self.fitted_model = None
+    self.len_array = len(array)
+    self.end_date = dates[-1]
+    self.scaled_array = self.scaler.fit_transform(array.reshape(-1,1))
+    x, y = self.process_data(self.scaled_array)
+    self.build_model(x,y)
 
-  def download_data(self):
-    data = yf.download(tickers="RELIANCE.NS",start='2020-09-01',end='2023-06-05',progress=False).copy()
-    data['Date'] = data.index
-    data.drop('Adj Close',axis=1,inplace=True)
-    data.index = 1+np.arange(data.shape[0])
-    data.index.names = ['id']
-    engine = create_engine('sqlite:///db.sqlite3')
-    data.to_sql(StockData._meta.db_table, if_exists='replace', con=engine)
-    
-    self.stock_price = data['Close'].to_numpy()
-    self.len_array = len(self.stock_price)
-    self.dates = data['Date'].to_numpy()
-    self.end_date = self.dates[-1]
+  def process_data(self,data_array):
+    y_data = data_array[self.time_steps+1:]
+    x_data = np.concatenate([data_array[j:len(data_array)+j-1-self.time_steps] for j in range(self.time_steps+1)],axis=1)
+    x_data = x_data.reshape((len(data_array)-self.time_steps-1,self.time_steps+1,1))
+    return x_data, y_data
 
-  def build_model(self):
-    train, test = self.split_data(self.stock_price)
-    dates_train, dates_test = self.split_data(self.dates)
-    dates_train, dates_test = dates_train[self.time_steps+1:-1], dates_test[self.time_steps+1:-1]
-
-    x_train, y_train = self.process_data(train), self.scaler_y.fit_transform(train[self.time_steps+2:].reshape(-1,1))
-    self.x_test, self.y_test = self.process_data(test), self.scaler_y.fit_transform(test[self.time_steps+2:].reshape(-1,1))
-
-    self.model = Sequential([LSTM(32, return_sequences=True, input_shape=(4,2)),LSTM(32),Dense(1)])
+  def build_model(self,x_data,y_data):
+    self.model = Sequential([
+                      LSTM(64, return_sequences=True, input_shape=(self.time_steps+1,1)),
+                      LSTM(32),
+                      Dense(1)
+                  ])
     self.model.compile(loss='mean_squared_error',optimizer='adam')
-    print(self.model.summary())
-    history = self.model.fit(x_train,y_train,epochs=10,batch_size=128)
-    self.test_model(self.model)
-  
-  def test_model(self,model):
-    y_pred = model.predict(self.x_test)
-    unscaled_y_pred = self.scaler_y.inverse_transform(y_pred)
-    unscaled_y_test = self.scaler_y.inverse_transform(self.y_test)
-    self.RMSEontest = mean_squared_error(unscaled_y_test,unscaled_y_pred)
-    print('RMSE on test data',self.RMSEontest)
+    history = self.model.fit(x_data,y_data,epochs=30,batch_size=12,verbose=0)
+    hwes_model = ExponentialSmoothing(self.scaled_array, seasonal_periods=52, trend='add', seasonal='add')
+    self.fitted_model = hwes_model.fit()
 
-  def split_data(self,array,test_size=0.05):
-    n = int(np.round(len(array)*test_size))
-    train_data = array[:-n]
-    test_data = array[-n:]
-    print('train length is',len(train_data),', test length is',len(test_data))
-    return train_data, test_data
-
-  def process_data(self,array):
-    x_data = np.column_stack((array[:-1], np.diff(array)/array[:-1]))
-    x_data = self.scaler_x.fit_transform(x_data)
-    bigtable = np.empty((len(array)-self.time_steps-2,self.time_steps+1,2))
-    for j in range(self.time_steps+1):
-      bigtable[:,j,0] = x_data[:,0][j:len(array)+j-2-self.time_steps]
-      bigtable[:,j,1] = x_data[:,1][j:len(array)+j-2-self.time_steps]
-    return bigtable
-  
   def predict_future(self,n_steps):
     pred_dates = pd.bdate_range(start=self.end_date,periods=n_steps)
-    array = self.stock_price[-(self.time_steps+3):]
+    array = self.scaled_array[-(self.time_steps+2):]
+    hwes_array = self.fitted_model.forecast(steps=n_steps)
     pred_stocks = np.empty(n_steps)
     for i in range(n_steps):
-        y_pred = self.model.predict(self.process_data(array))
-        y_pred = self.scaler_y.inverse_transform(y_pred)
-        pred_stocks[i] = y_pred
-        array = np.append(array,y_pred)
-        array = array[1:]
+      x,y = self.process_data(array)
+      y_pred = self.model.predict(x,verbose=0)
+      adj = np.sqrt(y_pred*hwes_array[i]) # ensemble
+      y_pred_unscaled = self.scaler.inverse_transform(adj.reshape(1,-1))
+      pred_stocks[i] = y_pred_unscaled.flatten()
+      array = np.append(array,y_pred,axis=0)
+      array = array[1:]
     return pred_stocks, pred_dates

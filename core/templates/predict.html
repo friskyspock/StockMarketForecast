@@ -4,8 +4,8 @@
 <div class="container-fluid vh-100">
 
     <div class="row">
-        <div id="predict form" class="d-flex justify-content-center m-3">
-            <form method="GET" action="{% url 'predict' %}" class="row g-2">
+        <div class="d-flex justify-content-center m-3">
+            <form id="predict form" method="GET" action="{% url 'predict' %}" class="row g-2">
                 <div class="col-auto">
                     {{ step_form }}
                 </div>
@@ -13,9 +13,7 @@
                     <button type="submit" class="btn btn-primary">Predict</button>
                 </div>
             </form>
-        </div>
-        <div id="retrain form" class="d-flex justify-content-center m-3">
-            <form action="{% url 'retrain' %}" class="col-auto">
+            <form id="retrain form" action="{% url 'retrain' %}" class="col-auto">
                 <button class="btn btn-danger">Update</button>
             </form>
         </div>
@@ -49,10 +47,12 @@
     const response = await fetch("{% url 'send_info' %}");
     const datainfo = await response.json();
     console.log(datainfo[0].TrainedOn);
-    var div = document.getElementById("predict form")
+    var div1 = document.getElementById("predict form")
+    var div2 = document.getElementById("retrain form")
     if (datainfo[0].TrainedOn != datainfo[0].Symbol) {
-        console.log('true');
-        div.style.display = 'none';
+        div1.style.display = 'none';
+    } else {
+        div2.style.display = 'none';
     }
     })();
 </script>

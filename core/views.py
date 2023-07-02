@@ -75,6 +75,7 @@ def retrain(request):
         pickle.dump(refresh,picklefile)
     return HttpResponse("""<html><script>window.location.replace('/predict');</script></html>""")
 
+
 def about(request):
     context = {'nbar':'about'}
     return render(request,'about.html',context)

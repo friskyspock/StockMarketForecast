@@ -4,7 +4,7 @@
 <div class="container-fluid vh-100">
 
     <div class="row">
-        <div class="d-flex justify-content-center m-3">
+        <div id="predict form" class="d-flex justify-content-center m-3">
             <form method="GET" action="{% url 'predict' %}" class="row g-2">
                 <div class="col-auto">
                     {{ step_form }}
@@ -12,6 +12,11 @@
                 <div class="col-auto">
                     <button type="submit" class="btn btn-primary">Predict</button>
                 </div>
+            </form>
+        </div>
+        <div id="retrain form" class="d-flex justify-content-center m-3">
+            <form action="{% url 'retrain' %}" class="col-auto">
+                <button class="btn btn-danger">Update</button>
             </form>
         </div>
     </div>
@@ -38,6 +43,19 @@
     </div>
 
 </div>
+
+<script>
+    (async function() {
+    const response = await fetch("{% url 'send_info' %}");
+    const datainfo = await response.json();
+    console.log(datainfo[0].TrainedOn);
+    var div = document.getElementById("predict form")
+    if (datainfo[0].TrainedOn != datainfo[0].Symbol) {
+        console.log('true');
+        div.style.display = 'none';
+    }
+    })();
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>

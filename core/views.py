@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 
 import pickle
@@ -15,6 +15,10 @@ from core.code import EnsembleModel
 # Create your views here.
 def send_data(request):
     data = StockData.objects.all()
+    return JsonResponse(list(data.values()),safe=False)
+
+def send_info(request):
+    data = StockInfo.objects.all()
     return JsonResponse(list(data.values()),safe=False)
 
 def send_filtered_data(request,start):
@@ -35,7 +39,7 @@ def chart(request):
         t.Name = tl.Name
         t.Updated = timezone.now()
         t.save()
-        data = yf.download(tickers="RELIANCE.NS",start='2020-09-01',end='2023-06-05',progress=False).copy()
+        data = yf.download(tickers=ticker,start='2020-09-01',end='2023-06-05',progress=False).copy()
         data['Date'] = data.index
         data.drop('Adj Close',axis=1,inplace=True)
         data.index = 1+np.arange(data.shape[0])
@@ -60,13 +64,17 @@ def predict(request):
     return render(request,'predict.html',context)
 
 def retrain(request):
-    context = {'ticker_form':TickerName,'nbar':'retrain'}
-    ticker = request.GET.get('ticker')
-    if ticker:
-        data = StockData.objects.values_list('Date','Close')
-        dates = np.array([row[0] for row in data])
-        array = np.array([row[1] for row in data])
-        refresh = EnsembleModel(ticker,array,dates)
-        with open('modelclass','wb') as picklefile:
-            pickle.dump(refresh,picklefile)
-    return render(request,'retrain.html',context)
+    u = StockInfo.objects.get(id=1)
+    u.TrainedOn = u.Symbol
+    u.save()
+    data = StockData.objects.values_list('Date','Close')
+    dates = np.array([row[0] for row in data])
+    array = np.array([row[1] for row in data])
+    refresh = EnsembleModel(array,dates)
+    with open('modelclass','wb') as picklefile:
+        pickle.dump(refresh,picklefile)
+    return HttpResponse("""<html><script>window.location.replace('/predict');</script></html>""")
+
+def about(request):
+    context = {'nbar':'about'}
+    return render(request,'about.html',context)

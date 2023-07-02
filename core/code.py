@@ -12,8 +12,7 @@ logging.disable(logging.WARNING)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 class EnsembleModel:
-  def __init__(self, ticker, array, dates, time_steps=80):
-    self.ticker = ticker
+  def __init__(self, array, dates, time_steps=80):
     self.scaler = MinMaxScaler()
     self.time_steps = time_steps
     self.model = None

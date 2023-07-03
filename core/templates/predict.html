@@ -21,7 +21,7 @@
                 <div class="progress mt-3" role="progressbar">
                     <div id="myprogressbar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
                 </div>
-                <p><small>Estimated Time Required: 1 min 30 secs</small></p>
+                <p><small>Estimated Time Required: 2 min 30 secs</small></p>
             </form>
         </div>
     </div>
@@ -56,7 +56,7 @@
         i = 1;
         var elem = document.getElementById("myprogressbar");
         var width = 0;
-        var id = setInterval(frame, 900);
+        var id = setInterval(frame, 1500);
         function frame() {
         if (width >= 100) {
             clearInterval(id);

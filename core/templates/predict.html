@@ -13,19 +13,26 @@
                     <button type="submit" class="btn btn-primary">Predict</button>
                 </div>
             </form>
-            <form id="retrain form" action="{% url 'retrain' %}" class="col-auto">
-                <button class="btn btn-danger">Update</button>
+            <form id="retrain form" action="{% url 'retrain' %}" class="container text-center">
+                <p>The database has been updated. Please retrain model.</p>
+                <div class="col-auto">
+                    <button class="btn btn-danger" onclick="move()">Train Model</button>
+                </div>
+                <div class="progress mt-3" role="progressbar">
+                    <div id="myprogressbar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                </div>
+                <p><small>Estimated Time Required: 1 min 30 secs</small></p>
             </form>
         </div>
     </div>
     
-    <div class="row">
+    <div id="firstrow" class="row">
         <div class="p-3 border rounded">
             <canvas id="myChart" height="60"></canvas>
         </div>
     </div>
 
-    <div class="row justify-content-start">
+    <div id="secondrow" class="row justify-content-start">
         <div class="col-3 px-0">
             <div class="my-3 border rounded overflow-y-scroll" style="height: 350px">
                 <table class="table">
@@ -43,14 +50,39 @@
 </div>
 
 <script>
+    var i = 0;
+    function move() {
+    if (i == 0) {
+        i = 1;
+        var elem = document.getElementById("myprogressbar");
+        var width = 0;
+        var id = setInterval(frame, 900);
+        function frame() {
+        if (width >= 100) {
+            clearInterval(id);
+            i = 0;
+        } else {
+            width++;
+            elem.style.width = width + "%";
+            elem.innerHTML = width + "%";
+        }
+        }
+    }
+    } 
+</script>
+
+<script>
     (async function() {
     const response = await fetch("{% url 'send_info' %}");
     const datainfo = await response.json();
-    console.log(datainfo[0].TrainedOn);
     var div1 = document.getElementById("predict form")
     var div2 = document.getElementById("retrain form")
+    var div3 = document.getElementById("firstrow")
+    var div4 = document.getElementById("secondrow")
     if (datainfo[0].TrainedOn != datainfo[0].Symbol) {
         div1.style.display = 'none';
+        div3.style.display = 'none';
+        div4.style.display = 'none';
     } else {
         div2.style.display = 'none';
     }

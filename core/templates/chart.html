@@ -24,17 +24,19 @@
     </div>
 
     <div class="row">
-        <div class="p-3 bg-info bg-opacity-10 border border-info rounded">
-            <canvas id="myChart2" height="50"></canvas>
+        <div class="me-2 col p-0">
+            <div class="p-3 bg-warning bg-opacity-10 border border-warning rounded">
+                <canvas id="myChart2" ></canvas>
+            </div>
+        </div>
+        <div class="ms-2 col p-0">
+            <div class="p-3 bg-danger bg-opacity-10 border border-danger rounded">
+                <canvas id="myChart3" ></canvas>
+            </div>
         </div>
     </div>
 
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js" integrity="sha512-UXumZrZNiOwnTcZSHLOfcTs0aos2MzBWHXOHOuB0J/R44QB0dwY5JgfbvljXcklVf65Gc4El6RjZ+lnwd2az2g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js" integrity="sha512-wUYbRPLV5zs6IqvWd88HIqZU/b8TBx+I8LEioQ/UC0t5EMCLApqhIAnUg7EsAzdbhhdgW07TqYDdH3QEXRcPOQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <!--CandleStick-->
 <script>
@@ -139,9 +141,8 @@
         labels: datapoints.map(row => (row.Date)),
         datasets: [
             {
-            data: datapoints.map(row => (row.Close)),
-            label: 'Close',
-            fill: true,
+            data: datapoints.map(row => (row.Seasonal)),
+            label: 'Seasonal',
             borderColor: 'rgb(75, 192, 192)',
             pointRadius: 0
             },
@@ -153,15 +154,7 @@
         type: 'line',
         data: data2,
         options: {
-            // animations: {
-            //     tension: {
-            //         duration: 1000,
-            //         easing: 'linear',
-            //         from: 1,
-            //         to: 0,
-            //         loop: true
-            //     }
-            // },
+            responsive: true,
             plugins: {
                 legend: {
                     display: false
@@ -188,6 +181,70 @@
     const myChart2 = new Chart(
       document.getElementById('myChart2'),
       config2
+    );
+})();
+</script>
+
+<!--ScatterPlot-->
+<script>
+    (async function() {
+    const response = await fetch("{% url 'send_data' %}");
+    const datapoints = await response.json();
+
+    // data
+    const data3 = {
+        labels: datapoints.map(row => (row.Date)),
+        datasets: [
+            {
+                type: 'line',
+                data: datapoints.map(row => (row.Trend)),
+                label: 'Trend',
+                borderColor: 'rgb(256, 0, 0)',
+                pointRadius: 0,
+                borderWidth: 1,
+            },
+            {
+                type: 'scatter',
+                data: datapoints.map(row => (row.Close)),
+                label: 'Close',
+                borderColor: 'rgba(256, 92, 92, 0.2)',
+                backgroundColor: 'rgba(256, 92, 92, 0.2)'
+            },
+        ]
+        };
+
+    // config
+    const config3 = {
+        data: data3,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+            },
+            scales: {
+                x: {
+                    type:'time',
+                    position: 'bottom',
+                    time: {unit:'year'},
+                    grid: {color:'rgba(161,161,161,0.1)'},
+                    ticks: {color: 'rgb(255,255,255)'},
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: {color:'rgba(161,161,161,0.1)'},
+                    ticks: {color: 'rgb(255,255,255)'},
+                }
+            }, 
+            layout: {padding: 2}
+        }
+    };
+
+     // render init block
+    const myChart3 = new Chart(
+      document.getElementById('myChart3'),
+      config3
     );
 })();
 </script>

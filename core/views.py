@@ -7,6 +7,7 @@ import numpy as np
 import yfinance as yf
 from sqlalchemy import create_engine
 from datetime import datetime
+from statsmodels.tsa.seasonal import seasonal_decompose
 
 from core.models import StockData, StockInfo, TickerList
 from core.forms import TickerName, Steps
@@ -27,10 +28,8 @@ def send_filtered_data(request,start):
     data = data.filter(Date__gte=start)
     return JsonResponse(list(data.values()),safe=False)
 
-def chart(request):
-    t = StockInfo.objects.get(id=1)
-    name = t.Name
-    context = {'ticker_form':TickerName,'name':name,'nbar':'chart'}
+def chart(request):    
+    context = {'ticker_form':TickerName,'nbar':'chart'}
     ticker = request.GET.get('ticker')
     if ticker:
         t = StockInfo.objects.get(id=1)
@@ -39,11 +38,20 @@ def chart(request):
         t.Name = tl.Name
         t.Updated = timezone.now()
         t.save()
+
+        context['name'] = t.Name
+
         data = yf.download(tickers=ticker,start='2020-09-01',end='2023-06-05',progress=False).copy()
         data['Date'] = data.index
         data.drop('Adj Close',axis=1,inplace=True)
         data.index = 1+np.arange(data.shape[0])
         data.index.names = ['id']
+
+        decompose = seasonal_decompose(data['Close'],model='additive',period=5)
+        data['Trend'] = decompose.trend
+        data['Seasonal'] = decompose.seasonal
+        data['Residue'] = decompose.resid
+
         engine = create_engine('sqlite:///db.sqlite3')
         data.to_sql(StockData._meta.db_table, if_exists='replace', con=engine)
     return render(request, 'chart.html', context)

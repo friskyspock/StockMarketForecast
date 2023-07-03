@@ -8,6 +8,9 @@ class StockData(models.Model):
     Close = models.FloatField()
     Volume = models.FloatField()
     Date = models.DateField()
+    Trend = models.FloatField()
+    Seasonal = models.FloatField()
+    Residue = models.FloatField()
 
     class Meta:
         ordering = ('id',)

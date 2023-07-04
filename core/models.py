@@ -8,6 +8,7 @@ class StockData(models.Model):
     Close = models.FloatField()
     Volume = models.FloatField()
     Date = models.DateField()
+    DateString = models.CharField(max_length=25)
     Trend = models.FloatField()
     Seasonal = models.FloatField()
     Residue = models.FloatField()

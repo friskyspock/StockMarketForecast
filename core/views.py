@@ -22,14 +22,9 @@ def send_info(request):
     data = StockInfo.objects.all()
     return JsonResponse(list(data.values()),safe=False)
 
-def send_filtered_data(request,start):
-    start = datetime.strptime(start,format="%Y-%m-%d")
-    data = StockData.objects.all()
-    data = data.filter(Date__gte=start)
-    return JsonResponse(list(data.values()),safe=False)
-
 def chart(request):    
-    context = {'ticker_form':TickerName,'nbar':'chart'}
+    datapoints = StockData.objects.all()
+    context = {'ticker_form':TickerName,'datapoints':datapoints,'nbar':'chart'}
     ticker = request.GET.get('ticker')
     if ticker:
         # updating data into info-database
@@ -39,11 +34,10 @@ def chart(request):
         t.Name = tl.Name
         t.Updated = timezone.now()
         t.save()
-        # sending ticker name for heading
-        context['name'] = t.Name
         # downloading data from yfinance
         data = yf.download(tickers=ticker,start='2020-09-01',end='2023-06-05',progress=False).copy()
         data['Date'] = data.index
+        data['DateString'] = data['Date'].dt.strftime("%Y-%m-%d")
         
         data.index = 1+np.arange(data.shape[0])
         data.index.names = ['id']

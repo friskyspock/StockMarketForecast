@@ -71,27 +71,23 @@
 
 <!--CandleStick-->
 <script>
-    (async function() {
-    const response = await fetch("{% url 'send_data' %}");
-    const datapoints = await response.json();
-
     // setup
     const data = {
       datasets: [
             {
                 label: "Last 30 days",
-                data: datapoints.map(row => ({
-                                x:row.Date,
-                                o:row.Open,
-                                h:row.High,
-                                l:row.Low,
-                                c:row.Close,
-                                s:[row.Open,row.Close]
-                            })),
-                movingAverage: datapoints.map(row => (row.MovAvg)),
+                data: [{% for row in datapoints%} {
+                                        x:'{{ row.DateString }}',
+                                        o:'{{ row.Open }}',
+                                        h:'{{ row.High }}',
+                                        l:'{{ row.Low }}',
+                                        c:'{{ row.Close }}',
+                                        s:['{{ row.Open }}','{{ row.Close }}'],
+                                }, {% endfor %}],
+                movingAverage: [{% for row in datapoints %} '{{ row.MovAvg }}', {% endfor %}],
                 boilingerBand: {
-                    bottom: datapoints.map(row => (row.BollBottom)),
-                    top: datapoints.map(row => (row.BollTop)),
+                    bottom: [{% for row in datapoints %} '{{ row.BollBottom }}', {% endfor %}],
+                    top: [{% for row in datapoints %} '{{ row.BollTop }}', {% endfor %}],
                 },
                 backgroundColor: (ctx) => {
                     const { raw: {o, c} } = ctx;
@@ -143,7 +139,7 @@
 
             // moving average
             const switch1 = document.getElementById('flexSwitch1')
-            switch1.onclick = myChart.update()
+            //switch1.onclick = myChart.update();
             if (switch1.checked === true) {
                 ctx.beginPath();
                 ctx.strokeStyle = 'rgba(102,102,102,1)';
@@ -162,7 +158,7 @@
             ctx.save();
 
             const switch2 = document.getElementById('flexSwitch2')
-            switch2.onclick = myChart.update()
+            //switch2.onclick = myChart.update();
             if (switch2.checked === true) {
                 const boilingerBandLength = data.datasets[0].boilingerBand.bottom.length-1;
                 ctx.beginPath();
@@ -250,7 +246,9 @@
       document.getElementById('myChart'),
       config
     );
-})();
+    function update() {
+        myChart.update();
+    }
 </script>
 
 

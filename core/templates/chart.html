@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="container-fluid vh-100">
+<div class="container-fluid">
 
     <div class="row">
         <div class="d-flex justify-content-between">
-            <h1 class="display-6">{{ name }}</h1>
+            <h1 class="display-6" id="titleName"></h1>
             <form method="GET" action="{% url 'chart' %}" class="row g-3">
                 <div class="col-auto">
                     {{ ticker_form }}
@@ -20,57 +20,94 @@
     <div class="row justify-content-start">
         <div class="p-3 my-3 bg-info bg-opacity-10 border border-info rounded">
             <canvas id="myChart" height="75"></canvas>
+            <div class="row row-cols-auto px-5">
+                <div class="form-check form-switch col">
+                    <input onclick="update()" class="form-check-input" type="checkbox" role="switch" id="flexSwitch1">
+                    <label class="form-check-label" for="flexSwitchCheckDefault">Moving Average</label>
+                </div>
+                <div class="form-check form-switch col">
+                    <input onclick="update()" class="form-check-input" type="checkbox" role="switch" id="flexSwitch2">
+                    <label class="form-check-label" for="flexSwitchCheckDefault">Bollinger Band</label>
+                </div>                                    
+            </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="me-2 col p-0">
-            <div class="p-3 bg-warning bg-opacity-10 border border-warning rounded">
-                <canvas id="myChart2" ></canvas>
-            </div>
-        </div>
-        <div class="ms-2 col p-0">
-            <div class="p-3 bg-danger bg-opacity-10 border border-danger rounded">
+    <div class="row" style="height: 100%;">
+
+        <div class="me-2 col p-0" style="max-height: 100%;">
+            <div class="p-3 bg-primary bg-opacity-10 border border-primary rounded" style="height: 100%;">
                 <canvas id="myChart3" ></canvas>
             </div>
         </div>
+
+        <div class="ms-2 col p-0" style="max-height: 100%; max-width: 100%;">
+            <div class="container text-center" style="height: 100%;">
+                <div class="row" style="height: 50%; width: 100%;">
+                    <div class="p-3 mb-2 bg-danger bg-opacity-10 border border-danger rounded" style="max-height: 100%; max-width: 100%;">
+                        <canvas id="myChart4" ></canvas>
+                    </div>
+                </div>
+                <div class="row" style="height: 50%; width: 100%;">
+                    <div class="p-3 mt-2 bg-danger bg-opacity-10 border border-danger rounded" style="max-height: 100%; max-width: 100%;">
+                        <canvas id="myChart5" ></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
 </div>
 
+<!--Info-->
+<script>
+    (async function() {
+    const response = await fetch("{% url 'send_info' %}");
+    const datapoints = await response.json();
+    document.getElementById('titleName').innerText = datapoints[0].Name;
+    })();
+</script>
+
 <!--CandleStick-->
 <script>
-    Chart.defaults.plugins.legend.display = false;
     (async function() {
     const response = await fetch("{% url 'send_data' %}");
     const datapoints = await response.json();
 
     // setup
     const data = {
-      datasets: [{
-        label: "Last 30 days",
-        data: datapoints.map(row => ({
-                        x:row.Date,
-                        o:row.Open,
-                        h:row.High,
-                        l:row.Low,
-                        c:row.Close,
-                        s:[row.Open,row.Close]
-                    })),
-        backgroundColor: (ctx) => {
-            const { raw: {o, c} } = ctx;
-            let color;
-            if(c >= o) {
-                color = 'rgba(75, 192, 192, 1)';
-            } else {
-                color = 'rgba(255, 26, 104, 1)';
+      datasets: [
+            {
+                label: "Last 30 days",
+                data: datapoints.map(row => ({
+                                x:row.Date,
+                                o:row.Open,
+                                h:row.High,
+                                l:row.Low,
+                                c:row.Close,
+                                s:[row.Open,row.Close]
+                            })),
+                movingAverage: datapoints.map(row => (row.MovAvg)),
+                boilingerBand: {
+                    bottom: datapoints.map(row => (row.BollBottom)),
+                    top: datapoints.map(row => (row.BollTop)),
+                },
+                backgroundColor: (ctx) => {
+                    const { raw: {o, c} } = ctx;
+                    let color;
+                    if(c >= o) {
+                        color = 'rgba(75, 192, 192, 1)';
+                    } else {
+                        color = 'rgba(255, 26, 104, 1)';
+                    }
+                    return color;
+                },
+                borderColor: 'rgba(0, 0, 0, 1)',
+                borderWidth: 1,
+                borderSkipped: false,
             }
-            return color;
-        },
-        borderColor: 'rgba(0, 0, 0, 1)',
-        borderWidth: 1,
-        borderSkipped: false,
-      }]
+        ]
     };
 
     // candlestick plugin block
@@ -97,11 +134,67 @@
         }
     }
 
+    // indicators plugin block
+    const indicators = {
+        id: 'indicators',
+        afterDatasetsDraw(chart, args, pluginOptions) {
+            const { ctx, data, scales: {x,y} } = chart;
+            ctx.save();
+
+            // moving average
+            const switch1 = document.getElementById('flexSwitch1')
+            switch1.onclick = myChart.update()
+            if (switch1.checked === true) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(102,102,102,1)';
+                ctx.lineWidth = 2;
+                ctx.moveTo(chart.getDatasetMeta(0).data[0].x, y.getPixelForValue(data.datasets[0].movingAverage[0]));
+                for (let i = 1; i < data.datasets[0].data.length; i++) {
+                    ctx.lineTo(chart.getDatasetMeta(0).data[i].x, y.getPixelForValue(data.datasets[0].movingAverage[i]));
+                }
+                ctx.stroke();
+                ctx.closePath();
+                ctx.restore();
+            }
+        },
+        beforeDatasetsDraw(chart, args, pluginOptions) {
+            const { ctx, data, scales: {x,y} } = chart;
+            ctx.save();
+
+            const switch2 = document.getElementById('flexSwitch2')
+            switch2.onclick = myChart.update()
+            if (switch2.checked === true) {
+                const boilingerBandLength = data.datasets[0].boilingerBand.bottom.length-1;
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(102,102,102,0.2)';
+                ctx.strokeStyle = 'rgba(102,102,102,1)';
+                ctx.moveTo(chart.getDatasetMeta(0).data[0].x, y.getPixelForValue(data.datasets[0].boilingerBand.bottom[0]));
+
+                for (let i = 1; i < boilingerBandLength; i++) {
+                    ctx.lineTo(chart.getDatasetMeta(0).data[i].x, y.getPixelForValue(data.datasets[0].boilingerBand.bottom[i]))
+                };
+
+                for (let j = boilingerBandLength; 0 <= j; j--) {
+                    ctx.lineTo(chart.getDatasetMeta(0).data[j].x, y.getPixelForValue(data.datasets[0].boilingerBand.top[j]));
+                }
+                ctx.closePath();
+                ctx.stroke();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+    }
+
     // config 
     const config = {
       type: 'bar',
       data,
       options: {
+        layout: {
+            padding: {
+                left: 3
+            }
+        },
         parsing: {
             xAxisKey: 'x',
             yAxisKey: 's',
@@ -111,16 +204,46 @@
             type: 'time',
             time: {
                 unit: 'week',
+                tooltipFormat: 'MMM d, yyyy'
             },
-            min: new Date("2023-01-01"),
-            max: new Date("2023-07-01")
+            min: new Date("2023-01-01")
             },
         y: {
             beginAtZero: false,
           }
+        },
+        plugins: {
+            zoom: {
+                pan: {
+                    enabled: true,
+                    mode: 'x',
+                }
+            },
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    afterTitle: (ctx) => {
+                        return '{{ name }}';
+                    },
+                    beforeBody: (ctx) => {
+                        const bodyArray = [
+                            `O: ${ctx[0].raw.o.toFixed(2)}`,
+                            `H: ${ctx[0].raw.h.toFixed(2)}`,
+                            `L: ${ctx[0].raw.l.toFixed(2)}`,
+                            `C: ${ctx[0].raw.c.toFixed(2)}`,
+                        ];
+                        return bodyArray
+                    },
+                    label: (ctx) => {
+                        return '';
+                    }
+                }
+            }
         }
       },
-      plugins: [candlestick]
+      plugins: [indicators, candlestick]
     };
     // render init block
     const myChart = new Chart(
@@ -130,62 +253,9 @@
 })();
 </script>
 
-<!--LinePlot-->
-<script>
-    (async function() {
-    const response = await fetch("{% url 'send_data' %}");
-    const datapoints = await response.json();
 
-    // data
-    const data2 = {
-        labels: datapoints.map(row => (row.Date)),
-        datasets: [
-            {
-            data: datapoints.map(row => (row.Seasonal)),
-            label: 'Seasonal',
-            borderColor: 'rgb(75, 192, 192)',
-            pointRadius: 0
-            },
-        ]
-        };
 
-    // config
-    const config2 = {
-        type: 'line',
-        data: data2,
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: false
-                },
-            },
-            scales: {
-                x: {
-                    type:'time',
-                    time: {unit:'year'},
-                    grid: {color:'rgba(161,161,161,0.1)'},
-                    ticks: {color: 'rgb(255,255,255)'},
-                },
-                y: {
-                    beginAtZero: false,
-                    grid: {color:'rgba(161,161,161,0.1)'},
-                    ticks: {color: 'rgb(255,255,255)'},
-                }
-            }, 
-            layout: {padding: 2}
-        }
-    };
-
-     // render init block
-    const myChart2 = new Chart(
-      document.getElementById('myChart2'),
-      config2
-    );
-})();
-</script>
-
-<!--ScatterPlot-->
+<!-- Chart3 : ScatterPlot -->
 <script>
     (async function() {
     const response = await fetch("{% url 'send_data' %}");
@@ -199,7 +269,7 @@
                 type: 'line',
                 data: datapoints.map(row => (row.Trend)),
                 label: 'Trend',
-                borderColor: 'rgb(256, 0, 0)',
+                borderColor: '#fd7e14',
                 pointRadius: 0,
                 borderWidth: 1,
             },
@@ -218,6 +288,7 @@
         data: data3,
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     display: false
@@ -249,4 +320,121 @@
 })();
 </script>
 
+<!-- Chart4 : LinePlot -->
+<script>
+    // const trialdata = (trial) => {return fetch("{% url 'send_data' %}").then((response) => {let data = response.json(); return data}).catch(console.error())};
+    // console.log(trialdata().);
+        (async function() {
+        const response = await fetch("{% url 'send_data' %}");
+        const datapoints = await response.json();
+    
+        // data
+        const data4 = {
+            labels: datapoints.map(row => (row.Date)),
+            datasets: [
+                {
+                data: datapoints.map(row => (row.Seasonal)),
+                label: 'Seasonal',
+                borderColor: 'rgb(75, 192, 192)',
+                pointRadius: 0
+                },
+            ]
+            };
+    
+        // config
+        const config4 = {
+            type: 'line',
+            data: data4,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                },
+                scales: {
+                    x: {
+                        type:'time',
+                        time: {unit:'month'},
+                        grid: {color:'rgba(161,161,161,0.1)'},
+                        ticks: {color: 'rgb(255,255,255)'},
+                        min: new Date("2023-01-01"),
+                    },
+                    y: {
+                        beginAtZero: false,
+                        grid: {color:'rgba(161,161,161,0.1)'},
+                        ticks: {color: 'rgb(255,255,255)'},
+                    }
+                }, 
+                layout: {padding: 1}
+            }
+        };
+    
+         // render init block
+        const myChart4 = new Chart(
+          document.getElementById('myChart4'),
+          config4
+        );
+    })();
+</script>
+
+<!-- Chart4 : LinePlot -->
+<script>
+    // const trialdata = (trial) => {return fetch("{% url 'send_data' %}").then((response) => {let data = response.json(); return data}).catch(console.error())};
+    // console.log(trialdata().);
+        (async function() {
+        const response = await fetch("{% url 'send_data' %}");
+        const datapoints = await response.json();
+    
+        // data
+        const data4 = {
+            labels: datapoints.map(row => (row.Date)),
+            datasets: [
+                {
+                data: datapoints.map(row => (row.Residue)),
+                label: 'Residue',
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(256, 92, 92, 0.2)'
+                },
+            ]
+            };
+    
+        // config
+        const config5 = {
+            type: 'scatter',
+            data: data4,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                },
+                scales: {
+                    x: {
+                        type:'time',
+                        time: {unit:'month'},
+                        grid: {color:'rgba(161,161,161,0.1)'},
+                        ticks: {color: 'rgb(255,255,255)'},
+                        min: new Date("2023-01-01")
+                    },
+                    y: {
+                        beginAtZero: false,
+                        grid: {color:'rgba(161,161,161,0.1)'},
+                        ticks: {color: 'rgb(255,255,255)'},
+                    }
+                }, 
+                layout: {padding: 1}
+            }
+        };
+    
+         // render init block
+        const myChart5 = new Chart(
+          document.getElementById('myChart5'),
+          config5
+        );
+    })();
+</script>
 {% endblock content %}

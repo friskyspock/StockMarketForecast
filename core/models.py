@@ -11,6 +11,9 @@ class StockData(models.Model):
     Trend = models.FloatField()
     Seasonal = models.FloatField()
     Residue = models.FloatField()
+    MovAvg = models.FloatField()
+    BollTop = models.FloatField()
+    BollBottom = models.FloatField()
 
     class Meta:
         ordering = ('id',)

@@ -32,26 +32,35 @@ def chart(request):
     context = {'ticker_form':TickerName,'nbar':'chart'}
     ticker = request.GET.get('ticker')
     if ticker:
+        # updating data into info-database
         t = StockInfo.objects.get(id=1)
         t.Symbol = ticker
         tl = TickerList.objects.filter(Symbol__exact=ticker).get()
         t.Name = tl.Name
         t.Updated = timezone.now()
         t.save()
-
+        # sending ticker name for heading
         context['name'] = t.Name
-
+        # downloading data from yfinance
         data = yf.download(tickers=ticker,start='2020-09-01',end='2023-06-05',progress=False).copy()
         data['Date'] = data.index
-        data.drop('Adj Close',axis=1,inplace=True)
+        
         data.index = 1+np.arange(data.shape[0])
         data.index.names = ['id']
-
+        # seasonal decomposition of data
         decompose = seasonal_decompose(data['Close'],model='additive',period=5)
         data['Trend'] = decompose.trend
         data['Seasonal'] = decompose.seasonal
         data['Residue'] = decompose.resid
+        # calculating moving average and bollinger bands
+        n = 20 # no. of moving average
+        m = 2 # no. of steps std
+        data['MovAvg'] = data['Adj Close'].rolling(n).mean().fillna(method='bfill')
+        sigma = data['Adj Close'].rolling(n).std().fillna(method='bfill')
+        data['BollTop'] = data['MovAvg'] + (m * sigma)
+        data['BollBottom'] = data['MovAvg'] - (m * sigma)
 
+        data.drop('Adj Close',axis=1,inplace=True)
         engine = create_engine('sqlite:///db.sqlite3')
         data.to_sql(StockData._meta.db_table, if_exists='replace', con=engine)
     return render(request, 'chart.html', context)

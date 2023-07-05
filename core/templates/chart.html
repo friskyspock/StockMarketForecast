@@ -112,7 +112,8 @@
                 type: 'bar',
                 label: 'MACD Indicator',
                 data: [{% for row in datapoints%} {x:'{{ row.DateString }}',s:[0,'{{ row.MACDhist }}']}, {% endfor %}],
-                yAxisID: 'yMacd',
+                yAxisID: 'yLower',
+                barThickness: 10,
                 backgroundColor: (ctx) => {
                     const { raw: {s} } = ctx;
                     let color;
@@ -373,7 +374,7 @@
             }
         }
       },
-      plugins: [indicators, candlestick, crosshair]
+      plugins: [indicators, candlestick, customScale, crosshair]
     };
     // render init block
     const myChart = new Chart(
@@ -425,7 +426,7 @@
                 label: 'Trend',
                 borderColor: '#fd7e14',
                 pointRadius: 0,
-                borderWidth: 1,
+                borderWidth: 3,
             },
             {
                 type: 'scatter',

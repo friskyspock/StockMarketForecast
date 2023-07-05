@@ -4,6 +4,7 @@ from django.utils import timezone
 
 import pickle
 import numpy as np
+import pandas as pd
 import yfinance as yf
 from sqlalchemy import create_engine
 from datetime import datetime
@@ -53,6 +54,10 @@ def chart(request):
         sigma = data['Adj Close'].rolling(n).std().fillna(method='bfill')
         data['BollTop'] = data['MovAvg'] + (m * sigma)
         data['BollBottom'] = data['MovAvg'] - (m * sigma)
+        # calculating RSI
+        data['RSI'] = RSI(data)
+        # calculating MACD
+        data = computeMACD(data,12,26,9)
 
         data.drop('Adj Close',axis=1,inplace=True)
         engine = create_engine('sqlite:///db.sqlite3')
@@ -90,3 +95,34 @@ def retrain(request):
 def about(request):
     context = {'nbar':'about'}
     return render(request,'about.html',context)
+
+## Other functions
+def RSI(data, window=14, adjust=False):
+    delta = data['Close'].diff(1).dropna()
+    loss = delta.copy()
+    gains = delta.copy()
+
+    gains[gains < 0] = 0
+    loss[loss > 0] = 0
+
+    gain_ewm = gains.ewm(com=window - 1, adjust=adjust).mean()
+    loss_ewm = abs(loss.ewm(com=window - 1, adjust=adjust).mean())
+
+    RS = gain_ewm / loss_ewm
+    RSI = 100 - 100 / (1 + RS)
+
+    return RSI
+
+def computeMACD (df, n_fast, n_slow, n_smooth):
+    data = df['Adj Close']
+    
+    fastEMA = data.ewm(span=n_fast, min_periods=n_slow).mean()
+    slowEMA = data.ewm(span=n_slow, min_periods=n_slow).mean()
+    MACD = pd.Series(fastEMA-slowEMA, name = 'MACD')
+    MACDsig = pd.Series(MACD.ewm(span=n_smooth, min_periods=n_smooth).mean(), name='MACDsig')
+    MACDhist = pd.Series(MACD - MACDsig, name = 'MACDhist')
+    #df = df.join(MACD)
+    #df = df.join(MACDsig)
+    df = df.join(MACDhist)
+    
+    return df

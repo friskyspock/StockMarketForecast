@@ -15,6 +15,8 @@ class StockData(models.Model):
     MovAvg = models.FloatField()
     BollTop = models.FloatField()
     BollBottom = models.FloatField()
+    RSI = models.FloatField()
+    MACDhist = models.FloatField()
 
     class Meta:
         ordering = ('id',)

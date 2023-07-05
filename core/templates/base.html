@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
     <head>
         <style type="text/css">
             .mylink{
@@ -19,8 +19,8 @@
     </head>
 
     <body>
-        <nav class="navbar navbar-expand-lg bg-body-tertiary">
-            <div class="container-fluid">
+        <nav class="shadow navbar navbar-expand-lg bg-info-subtle py-3" data-bs-theme="dark">
+            <div class="container-fluid px-5">
               <a class="navbar-brand" href="#">Stock Market Predictor</a>
               <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -38,9 +38,7 @@
                   </li>
                 </ul>
                 {% if nbar == 'chart' %}
-                <button type="button" class="btn btn-outline-primary">
-                  <a class="mylink" href="{% url 'predict' %}">Go To Predictions</a>
-                </button>
+                <button type="button" onclick="location.href='{% url 'predict' %}'" class="btn btn-outline-light">Go To Predictions</button>
                 {% endif %}
                 {% if nbar == 'predict' %}
                 <span class="navbar-text">
@@ -51,7 +49,7 @@
             </div>
           </nav>
 
-        <div id="content" name="content" class="main mx-auto p-3">
+        <div id="content" name="content" class="main p-3">
               {% block content %}
               {% endblock content %}
         </div>

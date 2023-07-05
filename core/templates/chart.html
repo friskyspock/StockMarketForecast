@@ -41,11 +41,11 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="row" style="height: 400px;">
         <div class="col p-3 me-2 shadow border rounded" style="max-height: 100%;">
-            <canvas id="myChart3" height="200"></canvas>
+            <canvas id="myChart3"></canvas>
         </div>
-        <div class="col ms-2">
+        <div class="col ms-2" style="height: 100%;">
             <div class="row mb-2 shadow border rounded">
                 <canvas id="myChart4" height="200"></canvas>
             </div>
@@ -103,7 +103,7 @@
             },{
                 type: 'line',
                 label: 'RSI Indicator',
-                borderColor: 'black',
+                borderColor: 'rgb(0,0,0,0.5)',
                 data : [{% for row in datapoints%} {x:'{{ row.DateString }}',s:'{{ row.RSI }}'}, {% endfor %}],
                 yAxisID: 'yLower',
                 hitRadius: 0,
@@ -112,7 +112,7 @@
                 type: 'bar',
                 label: 'MACD Indicator',
                 data: [{% for row in datapoints%} {x:'{{ row.DateString }}',s:[0,'{{ row.MACDhist }}']}, {% endfor %}],
-                yAxisID: 'yLower',
+                yAxisID: 'yMacd',
                 barThickness: 10,
                 backgroundColor: (ctx) => {
                     const { raw: {s} } = ctx;
@@ -259,18 +259,22 @@
                 }
                 ctx.setLineDash([]);
 
-                // crosshairlabel
+                // crosshair labels
                 ctx.beginPath();
+                ctx.fillStyle = 'rgba(102,102,102,1)';
                 ctx.fillRect(0,y.getPixelForValue(tooltip.dataPoints[0].raw.c)-12,left,24);
                 
                 ctx.beginPath();
                 const textWidth = ctx.measureText(tooltip.dataPoints[0].label).width+20;
                 ctx.fillRect(x.getPixelForValue(tooltip.dataPoints[0].raw.x)-(textWidth/2), top+height, textWidth, 24);
+                //console.log(ctx);
 
                 ctx.fillStyle = 'white';
                 ctx.font = 'bold 12px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.textBaseLine = 'middle';
+                ctx.textBaseline = 'middle';
+                //ctx.shadowBlur = 5;
+                //ctx.shadowColor = 'rgba(0,0,0,0.5)'
                 ctx.fillText(parseFloat(tooltip.dataPoints[0].raw.c).toFixed(2), left/2, y.getPixelForValue(tooltip.dataPoints[0].raw.c));
 
                 ctx.fillText(tooltip.dataPoints[0].label, x.getPixelForValue(tooltip.dataPoints[0].raw.x), top+height+12);
@@ -290,7 +294,7 @@
         layout: {
             padding: {
                 bottom: 20,
-                left: 10,
+                left: 20,
             }
         },
         parsing: {
@@ -304,14 +308,14 @@
             stacked: true,
             type: 'timeseries',
             time: {
-                unit: 'day',
+                unit: 'month',
                 tooltipFormat: 'MMM d, yyyy'
             },
             grid: {
                 display: false,
             },
             ticks: {
-                display: false,
+                display: true,
             },
             min: new Date("2023-01-01"),
         },
@@ -330,16 +334,19 @@
             type: 'linear',
             stack: 'yScale',
             stackWeight: 0,
+            grace: 1,
+            offset: true,
             ticks: {
                 count: 3,
                 display: false,
             },
-            },
+        },
         y: {
             beginAtZero: false,
             grace: 1,
             stack: 'yScale',
             stackWeight: 4,
+            offset: true,
             },
         },
         plugins: {
@@ -354,9 +361,9 @@
             },
             tooltip: {
                 callbacks: {
-                    afterTitle: (ctx) => {
-                        return 'Stock Values';
-                    },
+                    // afterTitle: (ctx) => {
+                    //     return 'Stock Values';
+                    // },
                     beforeBody: (ctx) => {
                         // add toFixed(2) here
                         const bodyArray = [
@@ -374,7 +381,7 @@
             }
         }
       },
-      plugins: [indicators, candlestick, customScale, crosshair]
+      plugins: [indicators, candlestick, crosshair]
     };
     // render init block
     const myChart = new Chart(
@@ -410,11 +417,21 @@
 
 
 
-<!-- Chart3 : ScatterPlot -->
+<!-- Chart3 : Historical data -->
 <script>
     (async function() {
     const response = await fetch("{% url 'send_data' %}");
     const datapoints = await response.json();
+
+    const dataMA = [];
+    let prev = datapoints[0].Close;
+    for (let i = 0; i < (datapoints.length); i++) {
+        dataMA.push(datapoints[i].Trend);
+    }
+
+    const totalDuration = 10000;
+    const delayBetweenPoints = totalDuration / datapoints.length;
+    const previousY = (ctx) => ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(datapoints[0].Trend) : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y;
 
     // data
     const data3 = {
@@ -422,18 +439,19 @@
         datasets: [
             {
                 type: 'line',
-                data: datapoints.map(row => (row.Trend)),
+                data: dataMA,
                 label: 'Trend',
                 borderColor: '#fd7e14',
                 pointRadius: 0,
-                borderWidth: 3,
+                borderWidth: 2,
             },
             {
-                type: 'scatter',
+                type: 'line',
                 data: datapoints.map(row => (row.Close)),
                 label: 'Close',
-                borderColor: 'rgba(256, 92, 92, 0.2)',
-                backgroundColor: 'rgba(256, 92, 92, 0.2)'
+                borderColor: 'rgba(256, 92, 92, 0.4)',
+                pointRadius: 0,
+                borderWidth: 3,
             },
         ]
         };
@@ -445,6 +463,10 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
+                title: {
+                    display: true,
+                    text: "Historical Line",
+                },
                 legend: {
                     display: false
                 },
@@ -463,7 +485,35 @@
                     //ticks: {color: 'rgb(255,255,255)'},
                 }
             }, 
-            layout: {padding: 2}
+            layout: {padding: 2},
+            animation: {
+                x: {
+                    type: 'number',
+                    easing: 'linear',
+                    duration: delayBetweenPoints,
+                    from: NaN, // the point is initially skipped
+                    delay(ctx) {
+                    if (ctx.type !== 'data' || ctx.xStarted) {
+                        return 0;
+                    }
+                    ctx.xStarted = true;
+                    return ctx.index * delayBetweenPoints;
+                    }
+                },
+                y: {
+                    type: 'number',
+                    easing: 'linear',
+                    duration: delayBetweenPoints,
+                    from: previousY,
+                    delay(ctx) {
+                    if (ctx.type !== 'data' || ctx.yStarted) {
+                        return 0;
+                    }
+                    ctx.yStarted = true;
+                    return ctx.index * delayBetweenPoints;
+                    }
+                }
+            },
         }
     };
 
@@ -475,10 +525,8 @@
 })();
 </script>
 
-<!-- Chart4 : LinePlot -->
+<!-- Chart4 : Seasonal -->
 <script>
-    // const trialdata = (trial) => {return fetch("{% url 'send_data' %}").then((response) => {let data = response.json(); return data}).catch(console.error())};
-    // console.log(trialdata().);
         (async function() {
         const response = await fetch("{% url 'send_data' %}");
         const datapoints = await response.json();
@@ -504,6 +552,10 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
+                    title: {
+                        display: true,
+                        text: "Seasonal Component",
+                    },
                     legend: {
                         display: false
                     },
@@ -534,62 +586,64 @@
     })();
 </script>
 
-<!-- Chart4 : LinePlot -->
+<!-- Chart4 : Residual -->
 <script>
-    // const trialdata = (trial) => {return fetch("{% url 'send_data' %}").then((response) => {let data = response.json(); return data}).catch(console.error())};
-    // console.log(trialdata().);
-        (async function() {
-        const response = await fetch("{% url 'send_data' %}");
-        const datapoints = await response.json();
-    
-        // data
-        const data4 = {
-            labels: datapoints.map(row => (row.Date)),
-            datasets: [
-                {
-                data: datapoints.map(row => (row.Residue)),
-                label: 'Residue',
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(256, 92, 92, 0.2)'
-                },
-            ]
-            };
-    
-        // config
-        const config5 = {
-            type: 'scatter',
-            data: data4,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                },
-                scales: {
-                    x: {
-                        type:'time',
-                        time: {unit:'month'},
-                        //grid: {color:'rgba(161,161,161,0.1)'},
-                        //ticks: {color: 'rgb(255,255,255)'},
-                        min: new Date("2023-01-01")
-                    },
-                    y: {
-                        beginAtZero: false,
-                        //grid: {color:'rgba(161,161,161,0.1)'},
-                        //ticks: {color: 'rgb(255,255,255)'},
-                    }
-                }, 
-                layout: {padding: 1}
-            }
+    (async function() {
+    const response = await fetch("{% url 'send_data' %}");
+    const datapoints = await response.json();
+
+    // data
+    const data4 = {
+        labels: datapoints.map(row => (row.Date)),
+        datasets: [
+            {
+            data: datapoints.map(row => (row.Residue)),
+            label: 'Residue',
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(256, 92, 92, 0.2)'
+            },
+        ]
         };
-    
-         // render init block
-        const myChart5 = new Chart(
-          document.getElementById('myChart5'),
-          config5
-        );
-    })();
+
+    // config
+    const config5 = {
+        type: 'scatter',
+        data: data4,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: "Residual Component",
+                },
+                legend: {
+                    display: false
+                },
+            },
+            scales: {
+                x: {
+                    type:'time',
+                    time: {unit:'month'},
+                    //grid: {color:'rgba(161,161,161,0.1)'},
+                    //ticks: {color: 'rgb(255,255,255)'},
+                    min: new Date("2023-01-01")
+                },
+                y: {
+                    beginAtZero: false,
+                    //grid: {color:'rgba(161,161,161,0.1)'},
+                    //ticks: {color: 'rgb(255,255,255)'},
+                }
+            }, 
+            layout: {padding: 1}
+        }
+    };
+
+        // render init block
+    const myChart5 = new Chart(
+        document.getElementById('myChart5'),
+        config5
+    );
+})();
 </script>
 {% endblock content %}

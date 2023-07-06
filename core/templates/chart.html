@@ -45,16 +45,27 @@
         <div class="col p-3 me-2 shadow border rounded" style="max-height: 100%;">
             <canvas id="myChart3"></canvas>
         </div>
-        <div class="col ms-2" style="height: 100%;">
-            <div class="row mb-2 shadow border rounded">
-                <canvas id="myChart4" height="200"></canvas>
-            </div>
-            <div class="row mt-2 shadow border rounded">
-                <canvas id="myChart5" height="200"></canvas>
+        <div class="col p-3 ms-2 shadow border rounded" style="max-height: 100%;">
+            <div class="text-center">Top Financial News</div>
+            <div class="container overflow-y-scroll" style="height: 100%;">
+                {% for row in news %}
+                <div class="card my-2">
+                    <div class="card-body">
+                    <h5 class="card-title">{{ row.Title }}</h5>
+                    <p class="card-text">{{ row.Description }}</p>
+                    <a href='{{ row.Link }}'>Read more</a>
+                    </div>
+                </div>
+            {% endfor %}
             </div>
         </div>
     </div>
 </div>
+
+
+
+<!-- <script src="https://static.sekandocdn.net/static/feednami/feednami-client-v1.1.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script> -->
 
 <!--Info-->
 <script>
@@ -100,6 +111,22 @@
                 barThickness: 6,
                 borderSkipped: false,
                 yAxisID: 'y',
+            },{
+                type: 'bar',
+                label: 'Volume',
+                data: [{% for row in datapoints%} {x:new Date('{{ row.DateString }}'),s:[0,'{{ row.Volume }}'/10000]}, {% endfor %}],
+                yAxisID: 'y',
+                backgroundColor: (ctx) => {
+                    const { raw: {o, c} } = ctx;
+                    let color;
+                    if(c >= o) {
+                        color = 'rgba(75, 192, 192, 0.2)';
+                    } else {
+                        color = 'rgba(255, 26, 104, 0.2)';
+                    }
+                    return color;
+                },
+                barThickness: 6,
             },{
                 type: 'line',
                 label: 'RSI Indicator',
@@ -342,7 +369,7 @@
             },
         },
         y: {
-            beginAtZero: false,
+            beginAtZero: true,
             grace: 1,
             stack: 'yScale',
             stackWeight: 4,
@@ -525,125 +552,35 @@
 })();
 </script>
 
-<!-- Chart4 : Seasonal -->
-<script>
-        (async function() {
-        const response = await fetch("{% url 'send_data' %}");
-        const datapoints = await response.json();
-    
-        // data
-        const data4 = {
-            labels: datapoints.map(row => (row.Date)),
-            datasets: [
-                {
-                data: datapoints.map(row => (row.Seasonal)),
-                label: 'Seasonal',
-                borderColor: 'rgb(75, 192, 192)',
-                pointRadius: 0
-                },
-            ]
-            };
-    
-        // config
-        const config4 = {
-            type: 'line',
-            data: data4,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: "Seasonal Component",
-                    },
-                    legend: {
-                        display: false
-                    },
-                },
-                scales: {
-                    x: {
-                        type:'time',
-                        time: {unit:'month'},
-                        //grid: {color:'rgba(161,161,161,0.1)'},
-                        //ticks: {color: 'rgb(255,255,255)'},
-                        min: new Date("2023-01-01"),
-                    },
-                    y: {
-                        beginAtZero: false,
-                        //grid: {color:'rgba(161,161,161,0.1)'},
-                        //ticks: {color: 'rgb(255,255,255)'},
-                    }
-                }, 
-                layout: {padding: 1}
-            }
-        };
-    
-         // render init block
-        const myChart4 = new Chart(
-          document.getElementById('myChart4'),
-          config4
-        );
-    })();
-</script>
 
-<!-- Chart4 : Residual -->
-<script>
-    (async function() {
-    const response = await fetch("{% url 'send_data' %}");
-    const datapoints = await response.json();
 
-    // data
-    const data4 = {
-        labels: datapoints.map(row => (row.Date)),
-        datasets: [
-            {
-            data: datapoints.map(row => (row.Residue)),
-            label: 'Residue',
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(256, 92, 92, 0.2)'
-            },
-        ]
-        };
+<!-- <script>
+    $(document).ready(function() {
+    loadRSS('https://www.moneycontrol.com/rss/MCtopnews.xml', '#Newsfeed', 'Elcom');   
+    });
 
-    // config
-    const config5 = {
-        type: 'scatter',
-        data: data4,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                title: {
-                    display: true,
-                    text: "Residual Component",
-                },
-                legend: {
-                    display: false
-                },
-            },
-            scales: {
-                x: {
-                    type:'time',
-                    time: {unit:'month'},
-                    //grid: {color:'rgba(161,161,161,0.1)'},
-                    //ticks: {color: 'rgb(255,255,255)'},
-                    min: new Date("2023-01-01")
-                },
-                y: {
-                    beginAtZero: false,
-                    //grid: {color:'rgba(161,161,161,0.1)'},
-                    //ticks: {color: 'rgb(255,255,255)'},
+    function loadRSS(link, htmlContainer, closingDate) {
+        var url = link;
+        var cDate = closingDate;
+        var container = $(htmlContainer);
+
+        feednami.load(url, function(result){
+            if (result.error) {
+                console.log(result.error);
+            } else {
+                var entries = result.feed.entries;
+                for(var i = 0; i < 5; i++){
+                    var entry = entries[i];
+                    container.append("<li class=\"card\"><p><h2>" 
+                        + "<a href=\"" + entry.link + "\" target=\"_blank\">" + entry.title + "</a>" 
+                        + "</h2></p>"+ entry.description + "</li>");
                 }
-            }, 
-            layout: {padding: 1}
-        }
-    };
-
-        // render init block
-    const myChart5 = new Chart(
-        document.getElementById('myChart5'),
-        config5
-    );
-})();
+            }
+        });
+    }
 </script>
+<div class="row">
+    <ul id="Newsfeed"></ul>
+</div> -->
+
 {% endblock content %}

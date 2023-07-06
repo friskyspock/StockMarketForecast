@@ -36,3 +36,12 @@ class TickerList(models.Model):
 
     def __str__(self):
         return self.Name
+
+class StockNews(models.Model):
+    PubDate = models.DateField()
+    Title = models.CharField(max_length=250)
+    Link = models.CharField(max_length=100)
+    Description = models.CharField(max_length=500)
+
+    def __str__(self):
+        return self.Title

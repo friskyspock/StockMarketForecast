@@ -33,6 +33,7 @@
     </div>
 
     <div id="secondrow" class="row justify-content-start">
+
         <div class="col-3 px-0">
             <div class="my-3 border rounded overflow-y-scroll" style="height: 350px">
                 <table class="table">
@@ -45,6 +46,16 @@
                 </table>
             </div>
         </div>
+
+        <div class="col ms-2" style="height: 100%;">
+            <div class="row mb-2 shadow border rounded">
+                <canvas id="myChart4" height="200"></canvas>
+            </div>
+            <div class="row mt-2 shadow border rounded">
+                <canvas id="myChart5" height="200"></canvas>
+            </div>
+        </div>
+
     </div>
 
 </div>
@@ -291,6 +302,128 @@
     document.getElementById('myChart'),
     config
     );
+})();
+</script>
+
+<!-- Chart4 : Seasonal -->
+<script>
+    (async function() {
+    const response = await fetch("{% url 'send_data' %}");
+    const datapoints = await response.json();
+
+    // data
+    const data4 = {
+        labels: datapoints.map(row => (row.Date)),
+        datasets: [
+            {
+            data: datapoints.map(row => (row.Seasonal)),
+            label: 'Seasonal',
+            borderColor: 'rgb(75, 192, 192)',
+            pointRadius: 0
+            },
+        ]
+        };
+
+    // config
+    const config4 = {
+        type: 'line',
+        data: data4,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: "Seasonal Component",
+                },
+                legend: {
+                    display: false
+                },
+            },
+            scales: {
+                x: {
+                    type:'time',
+                    time: {unit:'month'},
+                    //grid: {color:'rgba(161,161,161,0.1)'},
+                    //ticks: {color: 'rgb(255,255,255)'},
+                    min: new Date("2023-01-01"),
+                },
+                y: {
+                    beginAtZero: false,
+                    //grid: {color:'rgba(161,161,161,0.1)'},
+                    //ticks: {color: 'rgb(255,255,255)'},
+                }
+            }, 
+            layout: {padding: 1}
+        }
+    };
+
+     // render init block
+    const myChart4 = new Chart(
+      document.getElementById('myChart4'),
+      config4
+    );
+})();
+</script>
+
+<!-- Chart4 : Residual -->
+<script>
+(async function() {
+const response = await fetch("{% url 'send_data' %}");
+const datapoints = await response.json();
+
+// data
+const data4 = {
+    labels: datapoints.map(row => (row.Date)),
+    datasets: [
+        {
+        data: datapoints.map(row => (row.Residue)),
+        label: 'Residue',
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(256, 92, 92, 0.2)'
+        },
+    ]
+    };
+
+// config
+const config5 = {
+    type: 'scatter',
+    data: data4,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: "Residual Component",
+            },
+            legend: {
+                display: false
+            },
+        },
+        scales: {
+            x: {
+                type:'time',
+                time: {unit:'month'},
+                //grid: {color:'rgba(161,161,161,0.1)'},
+                //ticks: {color: 'rgb(255,255,255)'},
+                min: new Date("2023-01-01")
+            },
+            y: {
+                beginAtZero: false,
+                //grid: {color:'rgba(161,161,161,0.1)'},
+                //ticks: {color: 'rgb(255,255,255)'},
+            }
+        }, 
+        layout: {padding: 1}
+    }
+};
+
+    // render init block
+const myChart5 = new Chart(
+    document.getElementById('myChart5'),
+    config5
+);
 })();
 </script>
 {% endblock content %}

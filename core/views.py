@@ -10,9 +10,12 @@ from sqlalchemy import create_engine
 from datetime import datetime
 from statsmodels.tsa.seasonal import seasonal_decompose
 
-from core.models import StockData, StockInfo, TickerList
+from core.models import StockData, StockInfo, TickerList, StockNews
 from core.forms import TickerName, Steps
 from core.code import EnsembleModel
+
+from bs4 import BeautifulSoup
+import requests
 
 # Create your views here.
 def send_data(request):
@@ -23,9 +26,11 @@ def send_info(request):
     data = StockInfo.objects.all()
     return JsonResponse(list(data.values()),safe=False)
 
-def chart(request):    
+def chart(request):
+    #fetchNews()
+    news = StockNews.objects.all()
     datapoints = StockData.objects.all()
-    context = {'ticker_form':TickerName,'datapoints':datapoints,'nbar':'chart'}
+    context = {'ticker_form':TickerName,'datapoints':datapoints,'news':news,'nbar':'chart'}
     ticker = request.GET.get('ticker')
     if ticker:
         # updating data into info-database
@@ -126,3 +131,17 @@ def computeMACD (df, n_fast, n_slow, n_smooth):
     df = df.join(MACDhist)
     
     return df
+
+def fetchNews():
+    url = "https://www.moneycontrol.com/rss/MCtopnews.xml"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, features='xml')
+    StockNews.objects.all().delete()
+    for item in soup.find_all('item'):
+        p = StockNews(
+            PubDate=pd.to_datetime(item.find('pubDate').get_text()),
+            Title=item.find('title').get_text(),
+            Link=item.find('link').get_text(),
+            Description=item.find('description').text.split('/>')[-1]
+            )
+        p.save()

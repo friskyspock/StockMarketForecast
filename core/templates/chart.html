@@ -111,6 +111,7 @@
                 barThickness: 6,
                 borderSkipped: false,
                 yAxisID: 'y',
+                order: 1,
             },{
                 type: 'bar',
                 label: 'Volume',
@@ -141,6 +142,7 @@
                 data: [{% for row in datapoints%} {x:'{{ row.DateString }}',s:[0,'{{ row.MACDhist }}']}, {% endfor %}],
                 yAxisID: 'yMacd',
                 barThickness: 10,
+                order: 2,
                 backgroundColor: (ctx) => {
                     const { raw: {s} } = ctx;
                     let color;
@@ -392,7 +394,7 @@
                     //     return 'Stock Values';
                     // },
                     beforeBody: (ctx) => {
-                        // add toFixed(2) here
+                        console.log(ctx);
                         const bodyArray = [
                             `O: ${parseFloat(ctx[0].raw.o).toFixed(2)}`,
                             `H: ${parseFloat(ctx[0].raw.h).toFixed(2)}`,

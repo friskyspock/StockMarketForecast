@@ -4,3 +4,4 @@ SQLAlchemy==2.0.16
 scikit-learn==1.2.2
 pandas==2.0.2
 Django==4.2.2
+statsmodels==0.14.0

@@ -115,19 +115,11 @@
             },{
                 type: 'bar',
                 label: 'Volume',
-                data: [{% for row in datapoints%} {x:new Date('{{ row.DateString }}'),s:[0,'{{ row.Volume }}'/10000]}, {% endfor %}],
-                yAxisID: 'y',
-                backgroundColor: (ctx) => {
-                    const { raw: {o, c} } = ctx;
-                    let color;
-                    if(c >= o) {
-                        color = 'rgba(75, 192, 192, 0.2)';
-                    } else {
-                        color = 'rgba(255, 26, 104, 0.2)';
-                    }
-                    return color;
-                },
+                data: [{% for row in datapoints%} {x:new Date('{{ row.DateString }}'),s:[0,'{{ row.Volume }}']}, {% endfor %}],
+                yAxisID: 'y1',
+                backgroundColor: 'rgba(52,115,217,0.2)',
                 barThickness: 6,
+                order: 2,
             },{
                 type: 'line',
                 label: 'RSI Indicator',
@@ -142,7 +134,6 @@
                 data: [{% for row in datapoints%} {x:'{{ row.DateString }}',s:[0,'{{ row.MACDhist }}']}, {% endfor %}],
                 yAxisID: 'yMacd',
                 barThickness: 10,
-                order: 2,
                 backgroundColor: (ctx) => {
                     const { raw: {s} } = ctx;
                     let color;
@@ -371,13 +362,22 @@
             },
         },
         y: {
-            beginAtZero: true,
+            beginAtZero: false,
             grace: 1,
             stack: 'yScale',
             stackWeight: 4,
             offset: true,
+            position: 'left'
+            },
+        y1: {
+            beginAtZero: true,
+            grace:1,
+            position: 'right',
+            grid: {
+                display: false,
             },
         },
+    },
         plugins: {
             zoom: {
                 pan: {
@@ -393,15 +393,19 @@
                     // afterTitle: (ctx) => {
                     //     return 'Stock Values';
                     // },
-                    beforeBody: (ctx) => {
-                        console.log(ctx);
-                        const bodyArray = [
-                            `O: ${parseFloat(ctx[0].raw.o).toFixed(2)}`,
-                            `H: ${parseFloat(ctx[0].raw.h).toFixed(2)}`,
-                            `L: ${parseFloat(ctx[0].raw.l).toFixed(2)}`,
-                            `C: ${parseFloat(ctx[0].raw.c).toFixed(2)}`,
-                        ];
-                        return bodyArray
+                    beforeBody: (ctx) => {    
+                        if (ctx[0].datasetIndex===0) {
+                            const bodyArray = [
+                                `O: ${parseFloat(ctx[0].raw.o).toFixed(2)}`,
+                                `H: ${parseFloat(ctx[0].raw.h).toFixed(2)}`,
+                                `L: ${parseFloat(ctx[0].raw.l).toFixed(2)}`,
+                                `C: ${parseFloat(ctx[0].raw.c).toFixed(2)}`,
+                            ];
+                            return bodyArray
+                        } else if (ctx[0].datasetIndex===1) {
+                            const bodyArray = [`V: ${parseFloat(ctx[0].raw.s[1]).toFixed(2)}`,];
+                            return bodyArray
+                        } else { }
                     },
                     label: (ctx) => {
                         return '';

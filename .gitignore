@@ -1,0 +1,7 @@
+.vscode/
+core/__pycache__/
+core/management/
+core/migrations/__pycache__/
+stockmarket/__pycache__/
+db.sqlite3
+modelclass
